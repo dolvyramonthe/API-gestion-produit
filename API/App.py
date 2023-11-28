@@ -3,9 +3,10 @@ from flask import Flask, jsonify, request
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from config import DATABASE_CONFIG
+import requests 
 
 app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'  #  clé secrète forte 
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'  
 jwt = JWTManager(app)
 mysql = pymysql.connect(**DATABASE_CONFIG)
 
@@ -132,7 +133,7 @@ def create_user():
         _username = _json['username']
         _password = _json['password']
         _email = _json['email']
-        _role = _json.get('role', 'USER')  # Ajout du rôle avec la valeur par défaut 'USER'
+        _role = _json.get('role', 'USER')  
 
         if _username and _password and _email and request.method == 'POST':
             cursor = get_cursor()
@@ -174,7 +175,7 @@ def manage_user(id):
             _username = _json['username']
             _password = _json['password']
             _email = _json['email']
-            _role = _json.get('role', 'USER')  # Ajout du rôle avec la valeur par défaut 'USER'
+            _role = _json.get('role', 'USER')  
 
             if _username and _password and _email and id and request.method == 'PUT':
                 cursor = get_cursor()
@@ -204,6 +205,54 @@ def manage_user(id):
         finally:
             cursor.close()
 
+
+# Route pour les paniers
+@app.route('/carts', methods=['GET'])
+@jwt_required()  
+def get_user_cart():
+    try:
+        current_user_id = get_jwt_identity()
+        cursor = get_cursor()
+        cursor.execute("SELECT id, user_id, product_id, quantity FROM carts WHERE user_id = %s", current_user_id)
+        user_cart = cursor.fetchall()
+        response = jsonify(user_cart)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        print(e)
+    finally:
+        cursor.close()
+
+@app.route('/carts/add', methods=['POST'])
+@jwt_required()
+def add_to_cart():
+    try:
+        current_user_id = get_jwt_identity()
+        _json = request.json
+        _product_id = _json['product_id']
+        _quantity = _json.get('quantity', 1) 
+
+        cursor = get_cursor()
+        cursor.execute("SELECT id FROM carts WHERE user_id = %s AND product_id = %s", (current_user_id, _product_id))
+        existing_cart_item = cursor.fetchone()
+
+        if existing_cart_item:
+            cursor.execute("UPDATE carts SET quantity = quantity + %s WHERE id = %s", (_quantity, existing_cart_item['id']))
+        else:
+            cursor.execute("INSERT INTO carts(user_id, product_id, quantity) VALUES(%s, %s, %s)",
+                           (current_user_id, _product_id, _quantity))
+
+        mysql.commit()
+        response = jsonify('Product added to cart successfully')
+        response.status_code = 200
+        return response
+
+    except Exception as e:
+        print(e)
+    finally:
+        cursor.close()
+
+
 # Route pour l'authentification
 @app.route('/login', methods=['POST'])
 def login():
@@ -218,11 +267,9 @@ def login():
         user = cursor.fetchone()
 
         if user:
-            # Créez un token d'accès avec l'identifiant de l'utilisateur
             access_token = create_access_token(identity=user['id'])
             
-            # Ajoutez le token à la table des tokens
-            expiration_date = datetime.utcnow() + timedelta(hours=2)  # Par exemple, expire dans 2 heures
+            expiration_date = datetime.utcnow() + timedelta(hours=2)  
             cursor.execute("INSERT INTO tokens (user_id, token, expiration_date) VALUES (%s, %s, %s)",
                            (user['id'], access_token, expiration_date))
             mysql.commit()
@@ -231,7 +278,7 @@ def login():
             response.status_code = 200
             return response
         else:
-            # Authentification échouée, retournez une réponse JSON appropriée
+           
             app.logger.warning(f"Failed login attempt for user: {_username}")
             return jsonify({"error": "Invalid username or password"}), 401
 
@@ -241,7 +288,7 @@ def login():
     finally:
         cursor.close()
 
-# Fonction utilitaire pour gérer les erreurs 404
+#  gérer les erreurs 404
 @app.errorhandler(404)
 def showMessage(error=None):
     message = {
