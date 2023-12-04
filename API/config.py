@@ -1,6 +1,6 @@
 DATABASE_CONFIG = {
-    'host': 'localhost',
+    'host': 'db',
     'user': 'dolvi',
-    'password': '12345',
+    'password': 'root',
     'database': 'API',
 }
