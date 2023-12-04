@@ -1,5 +1,9 @@
 
 -- Table product
+DROP DATABASE IF EXISTS API;
+CREATE DATABASE API;
+USE API;
+
 CREATE TABLE IF NOT EXISTS products (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -43,6 +47,6 @@ CREATE TABLE IF NOT EXISTS carts (
 
 
 
-INSERT INTO users (username, password, role) VALUES ('admin', 'motdepasseadmin', 'ADMIN');
+INSERT INTO users (username, email, password, role) VALUES ('admin', 'monthe@etna.com ', 'motdepasseadmin', 'ADMIN');
 
-INSERT INTO users (username, password) VALUES ('utilisateur', 'motdepasseutilisateur');
+INSERT INTO users (username, email, password, role) VALUES ('user', 'rose@etna.com ', 'motdepasseadmin', 'ADMIN');

@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  # Service pour la base de données
+  db:
+    image: mariadb:latest
+    ports:
+      - "32000:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 'root'
+      MYSQL_DATABASE: 'API'
+      MYSQL_USER: 'dolvi'
+      MYSQL_PASSWORD: 'root'
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db_data:/var/lib/mysql
+  
+  # Service pour l'API
+  api:
+    build: ./API
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    environment:
+      JWT_SECRET_KEY: 'your-secret-key'
+      DATABASE_HOST: 'db' 
+      DATABASE_USER: 'dolvi'
+      DATABASE_PASSWORD: 'root'
+      DATABASE_NAME: 'API'
+
+volumes:
+  db_data: 
